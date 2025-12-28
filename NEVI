@@ -1,0 +1,652 @@
+import 'package:flutter/material.dart';
+import 'dart:async'; // Timer için
+
+void main() {
+  runApp(const MyApp());
+}
+
+// Global değişken
+bool isMatched = false;
+
+// Navigasyon adım modeli
+class NavStepInfo {
+  final String instruction;
+  final String distance;
+  final IconData icon;
+  final Color color;
+
+  NavStepInfo(this.instruction, this.distance, this.icon, {this.color = Colors.white});
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.indigo,
+        scaffoldBackgroundColor: Colors.white,
+      ),
+      home: const MatchScreen(),
+    );
+  }
+}
+
+/// ───────── ÜST BAR ─────────
+class FlightTimeBar extends StatelessWidget {
+  const FlightTimeBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 60,
+      color: Colors.indigo,
+      alignment: Alignment.center,
+      child: Text(
+        isMatched ? 'Uçuşa kalan süre: 01:32:10' : '',
+        style: const TextStyle(color: Colors.white, fontSize: 16),
+      ),
+    );
+  }
+}
+
+/// ───────── 1. EKRAN: GİRİŞ (HATA DÜZELTİLDİ: SCROLL EKLENDİ) ─────────
+class MatchScreen extends StatelessWidget {
+  const MatchScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = TextEditingController();
+
+    return Scaffold(
+      // resizeToAvoidBottomInset: false, // Alternatif çözüm (Klavye üstüne binmesin diye)
+      body: Column(
+        children: [
+          const FlightTimeBar(),
+          Expanded(
+            // SingleChildScrollView eklendi: Klavye açılınca taşmayı önler
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 40), // Üstten biraz boşluk
+                    const Icon(Icons.smart_toy, size: 100, color: Colors.indigo),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Merhaba ben Nevi',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Eşleşme kodunu lütfen gir'),
+                    const SizedBox(height: 32),
+                    TextField(
+                      controller: controller,
+                      maxLength: 4,
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 26, letterSpacing: 8),
+                      decoration: const InputDecoration(
+                        counterText: '',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (v) {
+                        if (v.length == 4) {
+                          isMatched = true;
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (_) => const BagajScreen()),
+                          );
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 40), // Alttan boşluk
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ───────── 2. EKRAN: BAGAJ ─────────
+class BagajScreen extends StatefulWidget {
+  const BagajScreen({super.key});
+
+  @override
+  State<BagajScreen> createState() => _BagajScreenState();
+}
+
+class _BagajScreenState extends State<BagajScreen> {
+  int seconds = 5;
+  bool started = false;
+
+  void startCountdown() async {
+    setState(() => started = true);
+    while (seconds > 0) {
+      await Future.delayed(const Duration(seconds: 1));
+      if (mounted) setState(() => seconds--);
+    }
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          const FlightTimeBar(),
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 140,
+                      height: 140,
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withOpacity(0.3),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.luggage, size: 80, color: Colors.purple),
+                    ),
+                    const SizedBox(height: 32),
+                    if (!started) ...[
+                      const Text(
+                        'Lütfen bagajlarınızı mor alana yerleştiriniz.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text('Yerleşme tamamlandı mı?'),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: startCountdown,
+                        child: const Text('EVET'),
+                      ),
+                      ElevatedButton(onPressed: () {}, child: const Text('HAYIR')),
+                    ] else ...[
+                      const Text(
+                        'Sıkıştırma işlemi yapılıyor\nLütfen elleşmeyin',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        seconds.toString(),
+                        style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ───────── 3. EKRAN: ANA SAYFA (ROTA TANIMLARI) ─────────
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int index = 0;
+
+  late final List<Widget> pages;
+
+  @override
+  void initState() {
+    super.initState();
+    pages = [
+      const HomePage(),
+      const CheckInPage(),
+      
+      // 2: RESTORAN (Robot Dostu Rota)
+      GenericNavPage(
+        pageTitle: 'Restoranlar',
+        themeColor: Colors.orange,
+        startIcon: Icons.fastfood,
+        steps: [
+          NavStepInfo('Ana koridoru takip edin', '60 m', Icons.straight),
+          NavStepInfo('Sağa dönün, Food Court tabelasını izleyin', '40 m', Icons.turn_right),
+          NavStepInfo('Burger King\'in yanından düz geçin', '10 m', Icons.lunch_dining),
+          NavStepInfo('Engelsiz masa bölümüne ilerleyin', '5 m', Icons.table_restaurant),
+          NavStepInfo('Afiyet olsun! Alana ulaştınız.', '0 m', Icons.check_circle, color: Colors.orange),
+        ],
+      ),
+
+      // 3: DUTY FREE (Robot Dostu Rota)
+      GenericNavPage(
+        pageTitle: 'Duty Free',
+        themeColor: Colors.pinkAccent,
+        startIcon: Icons.shopping_bag,
+        steps: [
+          NavStepInfo('Güvenlikten sonra düz devam edin', '100 m', Icons.straight),
+          NavStepInfo('Geniş koridordan sola sapın', '20 m', Icons.turn_left),
+          NavStepInfo('Otomatik kapıdan geçin', '5 m', Icons.sensor_door),
+          NavStepInfo('Parfüm reyonu karşınızda', '10 m', Icons.brush),
+          NavStepInfo('Alışveriş alanına ulaştınız!', '0 m', Icons.card_giftcard, color: Colors.pinkAccent),
+        ],
+      ),
+
+      const SimplePage(title: 'Bagaj Takip'),
+
+      // 5: UÇAK / KAPI (Robot Dostu)
+      GenericNavPage(
+        pageTitle: 'Uçak Kapısı',
+        themeColor: Colors.blueAccent,
+        startIcon: Icons.airplanemode_active,
+        steps: [
+          NavStepInfo('Pasaport kontrolünden düz geçin', '50 m', Icons.verified_user),
+          NavStepInfo('Yürüyen bandın yanından ilerleyin', '150 m', Icons.directions_walk),
+          NavStepInfo('G3 Kapısı tabelasını takip edin', '30 m', Icons.turn_right),
+          NavStepInfo('Bekleme salonuna giriş yapın', '10 m', Icons.door_sliding),
+          NavStepInfo('G3 Kapısına ulaştınız. İyi uçuşlar!', '0 m', Icons.flag, color: Colors.blueAccent),
+        ],
+      ),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          const FlightTimeBar(),
+          Expanded(child: pages[index]),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: index,
+        onTap: (i) => setState(() => index = i),
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Check-in'),
+          BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: 'Restoran'),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_bag), label: 'Duty Free'),
+          BottomNavigationBarItem(icon: Icon(Icons.luggage), label: 'Bagaj'),
+          BottomNavigationBarItem(icon: Icon(Icons.airplanemode_active), label: 'Uçak'),
+        ],
+      ),
+    );
+  }
+}
+
+/// ───────── HOME PAGE ─────────
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text(
+        'Alt kısımlardan istediğiniz rotayı oluşturun.',
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+}
+
+/// ───────── CHECK-IN PAGE ─────────
+class CheckInPage extends StatefulWidget {
+  const CheckInPage({super.key});
+  @override
+  State<CheckInPage> createState() => _CheckInPageState();
+}
+
+class _CheckInPageState extends State<CheckInPage> {
+  int step = 0;
+  int navStepIndex = 0;
+  Timer? _navTimer;
+
+  // Robot Dostu Check-in Rotası
+  final List<NavStepInfo> navSteps = [
+    NavStepInfo('Koridor boyunca düz ilerleyin', '50 m', Icons.arrow_upward),
+    NavStepInfo('Danışma bankosundan sağa dönün', '10 m', Icons.turn_right),
+    NavStepInfo('Otomatik rampadan geçin', '20 m', Icons.accessible_forward),
+    NavStepInfo('Geniş holü takip edin', '30 m', Icons.straight),
+    NavStepInfo('Sola dönün, kontuar karşınızda', '15 m', Icons.turn_left),
+    NavStepInfo('Check-in alanına ulaştınız!', '0 m', Icons.location_on, color: Colors.greenAccent),
+  ];
+
+  @override
+  void dispose() {
+    _navTimer?.cancel();
+    super.dispose();
+  }
+
+  void startAutoNavigation() {
+    setState(() {
+      step = 4;
+      navStepIndex = 0;
+    });
+    _navTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (!mounted) { timer.cancel(); return; }
+      if (navStepIndex < navSteps.length - 1) {
+        setState(() => navStepIndex++);
+      } else {
+        timer.cancel();
+        Future.delayed(const Duration(seconds: 3), () {
+          if(mounted) setState(() { step = 5; navStepIndex = 0; });
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (step == 4) {
+      return _buildNavigationScreen(navSteps, navStepIndex, Colors.greenAccent);
+    }
+
+    return Center(
+      // Burada da SingleChildScrollView kullanabiliriz ama genelde
+      // klavye olmadığı için overflow riski azdır. Yine de ekleyelim:
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (step == 0) ...[
+                const Text('Check-in yaptınız mı?', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () async {
+                    setState(() => step = 1);
+                    await Future.delayed(const Duration(seconds: 2));
+                    if (mounted) setState(() => step = 2);
+                  },
+                  child: const Text('EVET'),
+                ),
+                ElevatedButton(onPressed: () => setState(() => step = 3), child: const Text('HAYIR')),
+              ],
+              if (step == 1) ...[
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                const Text('Kontrol ediyorum...'),
+              ],
+              if (step == 2) ...[
+                const Icon(Icons.check_circle, size: 120, color: Colors.green),
+                const SizedBox(height: 12),
+                const Text('Check-in tamamlandı', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              ],
+              if (step == 3) ...[
+                const Text('Check-in alanına gitmek ister misiniz?', textAlign: TextAlign.center, style: TextStyle(fontSize: 18)),
+                const SizedBox(height: 16),
+                ElevatedButton(onPressed: startAutoNavigation, child: const Text('EVET, ROTA OLUŞTUR')),
+                ElevatedButton(onPressed: () => setState(() => step = 5), child: const Text('HAYIR')),
+              ],
+              if (step == 5) ...[
+                const Icon(Icons.verified_user, size: 80, color: Colors.blue),
+                const SizedBox(height: 16),
+                const Text('İyi yolculuklar!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// ───────── GENERIC NAV SAYFASI ─────────
+class GenericNavPage extends StatefulWidget {
+  final String pageTitle;
+  final Color themeColor;
+  final IconData startIcon;
+  final List<NavStepInfo> steps;
+
+  const GenericNavPage({
+    super.key,
+    required this.pageTitle,
+    required this.themeColor,
+    required this.startIcon,
+    required this.steps,
+  });
+
+  @override
+  State<GenericNavPage> createState() => _GenericNavPageState();
+}
+
+class _GenericNavPageState extends State<GenericNavPage> {
+  int viewState = 0; // 0:Giriş, 1:Nav, 2:Bitiş
+  int navStepIndex = 0;
+  Timer? _timer;
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void startNav() {
+    setState(() {
+      viewState = 1;
+      navStepIndex = 0;
+    });
+
+    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (!mounted) { timer.cancel(); return; }
+      
+      if (navStepIndex < widget.steps.length - 1) {
+        setState(() => navStepIndex++);
+      } else {
+        timer.cancel();
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) setState(() => viewState = 2);
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (viewState == 1) {
+      return _buildNavigationScreen(widget.steps, navStepIndex, widget.themeColor);
+    }
+
+    if (viewState == 2) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(widget.steps.last.icon, size: 100, color: widget.themeColor),
+            const SizedBox(height: 24),
+            Text(
+              '${widget.pageTitle} alanına ulaştınız!',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: widget.themeColor),
+              onPressed: () => setState(() => viewState = 0),
+              child: const Text('TAMAM, GERİ DÖN', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Center(
+      child: SingleChildScrollView( // Buraya da ekledik, küçük ekranlar için garanti
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(widget.startIcon, size: 100, color: widget.themeColor),
+              const SizedBox(height: 24),
+              Text(
+                widget.pageTitle,
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: widget.themeColor),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '${widget.pageTitle} alanına gitmek için rota oluşturmak ister misiniz?',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 18),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: widget.themeColor),
+                  onPressed: startNav,
+                  child: const Text('EVET, ROTA OLUŞTUR', style: TextStyle(fontSize: 18, color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// ───────── HUD NAV EKRANI ─────────
+Widget _buildNavigationScreen(List<NavStepInfo> steps, int index, Color accentColor) {
+  final currentStep = steps[index];
+  final isFinished = index >= steps.length - 1;
+
+  return Scaffold(
+    backgroundColor: Colors.blueGrey[900],
+    body: Stack(
+      children: [
+        Center(
+          child: Opacity(
+            opacity: 0.1,
+            child: const Icon(Icons.map_outlined, size: 300, color: Colors.white),
+          ),
+        ),
+        
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(30),
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: accentColor, width: 2)
+                ),
+                child: Icon(
+                  currentStep.icon,
+                  size: 80,
+                  color: isFinished ? accentColor : Colors.white,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                currentStep.distance,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 40,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2
+                ),
+              ),
+              Text(
+                isFinished ? '' : 'kaldı',
+                style: const TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+
+        Positioned(
+          top: 20,
+          left: 20,
+          right: 20,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: accentColor.withOpacity(0.8),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [
+                BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))
+              ]
+            ),
+            child: Row(
+              children: [
+                Icon(currentStep.icon, color: Colors.white, size: 32),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    currentStep.instruction,
+                    style: const TextStyle(
+                      color: Colors.white, 
+                      fontSize: 18, 
+                      fontWeight: FontWeight.bold
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        Positioned(
+          bottom: 40,
+          left: 20,
+          right: 20,
+          child: Column(
+            children: [
+              LinearProgressIndicator(
+                value: (index + 1) / steps.length,
+                backgroundColor: Colors.white24,
+                color: accentColor,
+                minHeight: 6,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                isFinished ? 'Hedefe ulaştınız.' : 'Robot asistan yönlendirmesi aktif...',
+                style: const TextStyle(color: Colors.white54, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class SimplePage extends StatelessWidget {
+  final String title;
+  const SimplePage({super.key, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+}
